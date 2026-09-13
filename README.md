@@ -539,7 +539,8 @@ Two hardware variants build from one source tree. **BUILD1** is the toggle-SW1 p
 
 | Version | Change |
 |---|---|
-| **1.26** | **Current.** Page-3 LFO latch moved to SW2, which keeps its normal SRC job throughout |
+| **1.27** | **Current.** LED2 now confirms the parameter reset |
+| 1.26 | Page-3 LFO latch moved to SW2, which keeps its normal SRC job throughout |
 | 1.25 | LFO 2 routable to the bandpass by flipping a toggle while page 3 is held, LED2 confirms |
 | 1.24 | Grain pitch randomisation on page 3. LFO 2 skew now follows its own rate. Phaser removed |
 | 1.23 | Catch gains a 15% give-up takeover on pages 2 and 3. Page 1 stays pure catch |
