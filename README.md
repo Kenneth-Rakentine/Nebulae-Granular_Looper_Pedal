@@ -779,6 +779,10 @@ detent at symmetric, CCW one way, CW the other.
 Pages are what make two LFOs fit on the panel at all. Two LFOs need four controls for rate
 and skew and only two knobs are free, so page 1 and page 2 each carry one LFO's pair.
 
+**The hard constraint:** the LFO layer has exactly **four destination slots per LFO**, and
+they mirror page 1's knobs minus Speed and Pitch. Any destination that is not a page 1
+parameter has to displace one that is. Bandpass is the first case, see O5.
+
 ### Existing LFO controls are removed
 
 All current LFO secondary and tertiary controls come out. The LFO layer becomes the only
@@ -931,16 +935,22 @@ every depth knob feels broken on first touch, times two pages.
 Confirmed on build 1: LFO 2 past 12:00 CCW is not dead, just extremely slow. The cause is the
 rate range, not catch and not the detent.
 
-Proposed: raise the slow floor to roughly a **one minute period**, about 0.017 Hz. Anything
-slower is not musically useful.
+Proposed: raise the slow floor from **0.02 Hz to 0.1 Hz**, a 10 second cycle. **Keep the
+2 Hz ceiling.** That narrows the span from 6.6 octaves to 4.3, so every degree of rotation
+covers less frequency ratio and the whole sweep gains resolution, including the fast end
+that currently feels narrow.
 
-With an exponential mapping this is not a trade of slow for fast. Each degree of rotation
-covers a fixed frequency ratio, so removing unusable octaves at the bottom expands resolution
-**across the whole sweep**, including the fast end that currently feels narrow.
+```
+floor 0.02 Hz   50 s cycle   6.6 octaves   today
+floor 0.05 Hz   20 s cycle   5.3 octaves   if more slow drift is wanted
+floor 0.10 Hz   10 s cycle   4.3 octaves   proposed
+```
 
-**Hard ceiling, do not exceed:** block size is 512 at 48 kHz, so the control rate is 93.75 Hz
-and its Nyquist is about 46.9 Hz. An LFO above that aliases. Practical ceiling is around
-20 Hz, which still gives roughly 10 octaves against a one minute floor.
+**Raising the ceiling does the opposite.** It widens the span and makes every degree
+coarser. Only the floor move gets what was asked for.
+
+The 46.9 Hz aliasing limit is in Tier 4 as the hard ceiling. It is nowhere near anything
+worth setting here.
 
 **Measure before changing.** Read the actual mapping in the source rather than assuming.
 
@@ -952,18 +962,34 @@ Previously the artwork was still correct because page 3 was unlabelled. **An LFO
 changes that.** If pots 2 and 5 carry rate and skew in LFO mode, the panel arguably needs
 secondary labelling the current decal does not have. Decide before etching.
 
-### O5. Does pot 4 become BPF?
+### O5. Bandpass has no destination slot. This is a regression, not an enhancement
 
-**Density does not need an LFO**, so pot 4's slot in LFO mode is free for bandpass frequency
-depth instead. Size does take one: it is LFO 2's normalled destination today, and loop length
-breathing is one of the better modulations on the pedal.
+**Resolve this or build 2 ships with less modulation than build 1.**
 
-Bandpass sweep is already proven as a destination, since LFO 2 can route to it on page 3
-today at plus or minus 2 octaves. Moving it into LFO mode makes that depth continuous and
-lets either LFO drive it.
+The LFO mode map has exactly **four depth slots per LFO**: pots 1, 3, 4 and 6, since pots 2
+and 5 carry rate and skew. Under the current Tier 1 map those four are Start, Size, Density
+and Blend. **Bandpass is not among them.**
 
-Proposed, not resolved. If it lands, pot 4's LFO-mode label reads bandpass rather than
-density, which is the one place the LFO layer stops matching the printed panel.
+Build 1 can already route LFO 2 to the bandpass at plus or minus 2 octaves. So as Tier 1
+stands, build 2 loses a working feature and gains an untested one in its place. The trade is
+specifically **proven bandpass sweep against Density modulation that has never existed on
+this pedal**.
+
+**Density does not need an LFO.** Size does: it is LFO 2's normalled destination today and
+loop length breathing is one of the better modulations on the pedal. So pot 4 taking bandpass
+instead of Density is the straightforward fix.
+
+**One catch, worth knowing before the panel is drilled.** If SHIFT MIX gets fixed and page 3
+collapses (see O1), bandpass frequency lands on page 2, on POT1, POT2 or POT6, since POT3 to
+POT5 are already taken by spray, overlap and output. Its depth would still be pot 4 in LFO
+mode. **The knob holding the parameter and the knob holding its depth stop being the same
+knob**, which is the one place the whole scheme's logic breaks.
+
+**An option not otherwise considered:** the two LFO pages could carry different destination
+sets, with pot 4 as Density depth on the LFO 1 page and bandpass depth on the LFO 2 page.
+That gets all five destinations across eight slots. It costs the uniformity that makes the
+scheme easy to hold in your head, so it is only worth reaching for if the Density-versus-
+bandpass choice turns out to be genuinely painful.
 
 ### O6. Input boost
 
@@ -975,7 +1001,10 @@ This is the **only** gain in the chain that can improve signal to noise, since O
 applied after the converter and lifts signal and noise identically. A guitar currently hits
 the ADC around 25 dB below full scale, wasting that much converter range.
 
-**Test it first** by putting a clean boost pedal in front of the current build and
+It does not worsen mixer noise. The mixer is downstream and sees a hotter, cleaner signal, so
+it needs less makeup gain of its own.
+
+**Test it for free first** by putting a clean boost pedal in front of the current build and
 listening on headphones. That is electrically the same experiment.
 
 Gain above roughly 6x clips IC1.1 before the converter sees it, since the audio rail is +5 V
