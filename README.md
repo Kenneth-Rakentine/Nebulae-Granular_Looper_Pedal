@@ -544,6 +544,7 @@ reset pages 2 and 3 to defaults. LED2 blinks either way.
   physical toggle position
 
 ---
+<img src="diagram.png" width="320" alt="git repo diagram">
 
 ## Versions
 
