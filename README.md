@@ -126,6 +126,8 @@ Page 3 lasts only as long as you hold FS1. Release and you are back on page 2.
 
 ### Full matrix
 
+<img src="docs/Nebulae_v1.29_control_map.svg" width="680" alt="Nebulae v1.29 control map">
+
 | Pot | 1 Primary | 2 SHIFT | 3 TERTIARY |
 |---|---|---|---|
 | **POT1** | START, loop start | LFO 1 RATE | BANDPASS freq |
@@ -279,7 +281,7 @@ bypass on the way in. That costs a few hundred milliseconds, imperceptible by ha
 ### The reset
 
 Holding FS1 for one second with SW1 down returns all nine page-2 and page-3 parameters to
-their power-on defaults: LFO 1 rate and depth, dub level, spray, overlap, output, LFO 2
+their power-on defaults: LFO 1 rate and both depths, spray, overlap, output, LFO 2
 rate and depth, bandpass, shift mix, freq shift and pitch rand.
 
 **Page 1 is deliberately untouched.** Resetting it would leave all six knobs uncaught and
@@ -913,11 +915,15 @@ page 3 keeps    bandpass, shift mix, freq shift, pitch rand  ->  4 survivors
 Four survivors into three free slots. One over, so page 3 has to stay for a single control,
 FS1 keeps its hold, and the A2 collision returns.
 
-**Drop or fix any one of the four and page 3 disappears entirely.** SHIFT MIX is the
-candidate: around halfway is where the beating is strongest and it is a set-and-forget
-value, so fixing it there costs little. Then the remaining three fit page 2 exactly, FS1
-returns to unconditional bypass and reset, and the collision dies as a side effect. The
-seventh hole then buys LFO mode outright rather than splitting duty.
+**Drop or fix any one of the four and page 3 disappears entirely.** Then the remaining
+three fit page 2 exactly, FS1 returns to unconditional bypass and reset, and the collision
+dies as a side effect. The seventh hole then buys LFO mode outright rather than splitting
+duty.
+
+SHIFT MIX is **not** a candidate for fixing: independent shift mix is one of the more
+musical controls on the pedal and its adjustability is the point. So the seventh control
+needs a home rather than a fixed value. Options: a centre-off pairing on page 2, moving one
+control to a toggle latch, or a fourth page on SW1 down plus FS1 held.
 
 ### O2. Catch and takeover in LFO mode
 
