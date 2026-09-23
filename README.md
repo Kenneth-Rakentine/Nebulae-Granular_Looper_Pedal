@@ -742,54 +742,102 @@ When a Tier 1 entry changes, the old version moves to Tier 2 rather than being r
 SW1 stays a toggle. A **seventh hole** is added for an illuminated momentary button with a
 bi-colour LED.
 
-### The button is LFO mode
+### Page 3 is kept
 
-The button is the LFO layer, not a page-3 modifier. See Tier 2 A2 for the plan this
-replaced.
+Page 3 stays exactly where it is, on **SW1 up plus FS1 held**. The button does not take it
+over. See Tier 2 A5 for the plan this replaced, in which LFO mode absorbed page 3's
+contents and page 3 disappeared.
 
-- **Tap** to latch into LFO mode. First tap selects LFO 1, LED red. Second tap selects
-  LFO 2, LED green. Third tap exits.
-- **Hold** for momentary access to the last LFO page used, LED lit while held, drops out on
-  release. This is the fast path for a single edit.
+Keeping it is what makes the rest affordable: only the LFO rate and depth controls leave
+pages 2 and 3, so nothing else has to be displaced and shift mix stays a knob.
+
+### The button is the LFO layer, two pages
+
+| Gesture | Result |
+|---|---|
+| **tap** | cycles LFO 1 (LED red), LFO 2 (LED green), off |
+| **hold** | momentary access to the last LFO page used, LED lit while held |
 
 Tap-latch plus momentary-hold is the same pattern the existing page-3 toggle latch uses, so
-it is a shape both the firmware and the hands already know.
+it is a shape both the firmware and the hands already know. The hold is the fast path for a
+single edit; the latch is for setting up.
 
-### Two independent LFOs, no split
+**One page per LFO.** That is what makes two LFOs fit: each needs a rate and a skew, which
+is four controls against two spare knobs, so the pages carry one LFO's pair each.
 
-Both LFOs are fully independent and either can target any parameter, including the same
-parameter at once. Knobs are **not** hard-assigned to one LFO or the other. See Tier 2 A3
-for the split scheme this replaced.
+### LFO page control map
 
-### LFO mode control map
+Identical on both pages. Which LFO you are editing is the LED colour, not the layout.
 
-Within LFO mode, on the selected LFO's page:
-
-| Pot | Primary label | Function in LFO mode |
+| Pot | Primary label | Function on an LFO page |
 |---|---|---|
-| 1 | Start | Depth for Start |
-| 2 | Speed | **LFO rate** for the selected LFO |
-| 3 | Size | Depth for Size |
-| 4 | Density, or BPF, see O5 | Depth for that parameter |
-| 5 | Pitch | **LFO skew** for the selected LFO |
-| 6 | Blend | Depth for Blend |
+| 1 | Start | Depth to Start |
+| 2 | Speed | **LFO rate** |
+| 3 | Size | Depth to Size |
+| 4 | Density, or BPF, see O5 | Depth to that parameter |
+| 5 | Pitch | **LFO skew** |
+| 6 | Blend | Depth to Blend |
 
-Pots 2 and 5 carry rate and skew because Speed and Pitch do not take LFOs, so those knobs
-are otherwise idle in this layer. Pot 2 is already labelled Speed, so the label reads
-correctly for its LFO-mode job at no cost. Pot 5 is centre detent, which suits skew:
-detent at symmetric, CCW one way, CW the other.
+Pots 2 and 5 carry rate and skew because Speed and Pitch take no LFO, so those knobs are
+otherwise idle in this layer. Pot 2 already reads Speed, which is close enough to its
+LFO-page job to cost nothing. Pot 5 is centre detent, which suits skew: detent at
+symmetric, CCW one way, CW the other.
 
-Pages are what make two LFOs fit on the panel at all. Two LFOs need four controls for rate
-and skew and only two knobs are free, so page 1 and page 2 each carry one LFO's pair.
+**Two independent LFOs, no split.** Either can target any destination, including the same
+one at once. Knobs are not hard-assigned to one LFO. See Tier 2 A3 for the split scheme
+this replaced.
 
-**The hard constraint:** the LFO layer has exactly **four destination slots per LFO**, and
-they mirror page 1's knobs minus Speed and Pitch. Any destination that is not a page 1
-parameter has to displace one that is. Bandpass is the first case, see O5.
+**The hard constraint:** four destination slots per LFO, mirroring page 1's knobs minus
+Speed and Pitch. Any destination that is not a page 1 parameter displaces one that is.
+Bandpass is the first case, see O5.
 
-### Existing LFO controls are removed
+### The reset moves to both footswitches
 
-All current LFO secondary and tertiary controls come out. The LFO layer becomes the only
-place LFOs are configured. That is the point of the rework: one location, not three.
+**FS1 + FS2 together** resets pages 2 and 3. It leaves FS1's hold meaning page 3
+unconditionally, regardless of SW1.
+
+That kills the collision the seventh hole was originally meant to solve, without spending
+the button on it. On build 1, holding FS1 means page 3 with SW1 up and a parameter reset
+with SW1 down, and nothing on the panel says which, so reaching for page 3 with SW1 down
+wipes both hidden pages instead. Two footswitches at once is unambiguous and impossible to
+hit by accident.
+
+### Four freed slots
+
+Counted against the v1.32 map, which is the current firmware:
+
+```
+page 2  loses  LFO 1 RATE (POT1), LFO 1 DEPTH (POT6)        ->  2 free
+        keeps  DUB LVL, SPRAY, OVERLAP, OUTPUT
+page 3  loses  LFO 2 RATE (POT2), LFO 2 DEPTH (POT3)        ->  2 free
+        keeps  BANDPASS, SHIFT MIX, FREQ SHIFT, PITCH RAND
+```
+
+Nothing is sacrificed and there is room to spare. The SW2 page-3 latch also becomes
+redundant, since LFO 2 to bandpass is a depth knob on the LFO 2 page, so SW2 goes back to
+being purely SRC and the flip-also-changes-SRC wart disappears.
+
+### Candidates for the four slots
+
+Ranked by sound gained per unit of work.
+
+**WINDOW as a continuous knob.** The seven-window bank and the blending code already
+exist: `WinMix` crossfades across all of them and SW3 merely picks one of two. Restoring the
+stock continuous sweep is close to free and it is the largest sound-shaping control not
+currently exposed. SW3 would then select expodec versus rampdown for slot 2, or fall free.
+
+**Tape decay, sound-on-sound.** Write `existing * decay + new` and let old layers fade
+instead of accumulating. This is the one candidate that adds a genuinely new behaviour
+rather than exposing something already present. It needs a mode latch as well as a depth
+knob, which SW3 or SW4 could carry if window moves to a knob. The real risk is feedback:
+the engine output sits inside the loop, so both limiters end up in the feedback path and
+it is a tuning job rather than a one-line change.
+
+**Bandpass Q.** Makes the resonance adjustable instead of guessed at 1.0.
+
+**Dry level.** Split dry off the three-way blend onto its own control. BLEND becomes a
+two-way vocoder-to-granular crossfade, so both engines can sound together, which under the
+stock law they never do. The law already exists in the 2.x-ALEXTBLEND branch.
 
 ### LEDs
 
@@ -802,8 +850,8 @@ place LFOs are configured. That is the point of the rework: one location, not th
 ### Firmware status
 
 **This configuration does not exist yet.** The current `BUILD2` define makes the button
-replace SW1, which is the Tier 2 A1 arrangement. Add LFO mode as a third configuration, or
-repurpose `BUILD2`, before build 2 is assembled.
+replace SW1, which is the Tier 2 A1 arrangement. Add the LFO layer as a third
+configuration, or repurpose `BUILD2`, before build 2 is assembled.
 
 ### Button mounting
 
@@ -858,10 +906,13 @@ LED lit while held, and FS1's page-3 special case is deleted.
 
 **Superseded by:** LFO mode, which uses the button for a layer that needs it more.
 
-**The problem it solved still matters.** On build 1, holding FS1 means page 3 with SW1 up and
-parameter reset with SW1 down, and nothing on the panel says which. Reaching for page 3 with
-SW1 down wipes pages 2 and 3 instead. If LFO mode takes the button, page 3 goes back onto FS1
-and this collision returns, unless O1 resolves in its favour.
+**The problem it solved is now solved elsewhere.** On build 1, holding FS1 means page 3 with
+SW1 up and a parameter reset with SW1 down, and nothing on the panel says which, so reaching
+for page 3 with SW1 down wipes both hidden pages. Tier 1 moves the reset to FS1 + FS2
+instead, which fixes the collision without spending the button on it.
+
+**Still viable if:** the LFO layer turns out not to be worth a dedicated control, in which
+case this is the cheapest thing to do with the seventh hole.
 
 ### A3. Hard split of knobs between the two LFOs
 
@@ -884,46 +935,35 @@ expressive than a fixed-depth on/off latch.
 **Standing preference against:** both toggles already carry a primary function, and stacking
 more onto a lever is the overloading this design keeps trying to remove.
 
+
+### A5. LFO mode absorbs page 3
+
+The button carried the LFO layer and page 3's contents moved onto pages 1 and 2, so page 3
+disappeared entirely and FS1 went back to unconditional bypass and reset.
+
+**Superseded by:** keeping page 3. The arithmetic never quite worked, since four page-3
+survivors had to fit three freed page-2 slots, and the only way to close the gap was to fix
+SHIFT MIX at a constant. Independent shift mix is one of the more musical controls on the
+pedal and its adjustability is the point.
+
+**What it got right:** FS1 returning to one unconditional meaning. Tier 1 now achieves that
+by moving the reset to FS1 + FS2 instead.
+
 ---
 
 ## TIER 3, OPEN
 
-### O1. Does page 3 still have content?
+### O1. RESOLVED. Page 3 is kept
 
-Once LFO destinations move into LFO mode, page 3 may be nearly empty. This decides whether
-A2's collision problem is real.
+The question was whether page 3 would empty once the LFO destinations moved into the LFO
+layer, which would have let FS1 return to one unconditional meaning.
 
-- If page 3 still holds functions, FS1 keeps a hold function and the SW1 collision needs its own
-  answer
-- If page 3 empties, FS1 returns to unconditional bypass and reset, and the collision dies as
-  a side effect of the LFO rework rather than as its purpose
+**Answered by counting.** Only four page-3 survivors would have had to fit three freed
+page-2 slots, and closing that gap meant fixing SHIFT MIX at a constant. Not acceptable:
+independent shift mix is one of the more musical controls on the pedal.
 
-Check against the live control matrix above. **Highest-value open item**, because it decides
-whether the seventh hole is still earning its place.
-
-**Counted against the live matrix, it is one control away from emptying.**
-
-LFO mode removes LFO controls from *both* pages, not just page 3:
-
-```
-page 2 loses    LFO 1 RATE (POT1), BLEND LFO DEPTH (POT2), LFO 1 DEPTH (POT6)
-page 2 keeps    SPRAY, OVERLAP, OUTPUT                  ->  3 free slots
-page 3 loses    LFO 2 RATE, LFO 2 DEPTH
-page 3 keeps    bandpass, shift mix, freq shift, pitch rand  ->  4 survivors
-```
-
-Four survivors into three free slots. One over, so page 3 has to stay for a single control,
-FS1 keeps its hold, and the A2 collision returns.
-
-**Drop or fix any one of the four and page 3 disappears entirely.** Then the remaining
-three fit page 2 exactly, FS1 returns to unconditional bypass and reset, and the collision
-dies as a side effect. The seventh hole then buys LFO mode outright rather than splitting
-duty.
-
-SHIFT MIX is **not** a candidate for fixing: independent shift mix is one of the more
-musical controls on the pedal and its adjustability is the point. So the seventh control
-needs a home rather than a fixed value. Options: a centre-off pairing on page 2, moving one
-control to a toggle latch, or a fourth page on SW1 down plus FS1 held.
+**So page 3 stays**, only the LFO rate and depth controls leave it, and the FS1 collision
+is solved separately by moving the reset to FS1 + FS2. See Tier 1.
 
 ### O2. Catch and takeover in LFO mode
 
@@ -974,8 +1014,7 @@ secondary labelling the current decal does not have. Decide before etching.
 **Resolve this or build 2 ships with less modulation than build 1.**
 
 The LFO mode map has exactly **four depth slots per LFO**: pots 1, 3, 4 and 6, since pots 2
-and 5 carry rate and skew. Under the current Tier 1 map those four are Start, Size, Density
-and Blend. **Bandpass is not among them.**
+and 5 carry rate and skew. Under the Tier 1 map those four are Start, Size, Density and Blend. **Bandpass is not among them.**
 
 Build 1 can already route LFO 2 to the bandpass at plus or minus 2 octaves. So as Tier 1
 stands, build 2 loses a working feature and gains an untested one in its place. The trade is
@@ -986,11 +1025,10 @@ this pedal**.
 loop length breathing is one of the better modulations on the pedal. So pot 4 taking bandpass
 instead of Density is the straightforward fix.
 
-**One catch, worth knowing before the panel is drilled.** If SHIFT MIX gets fixed and page 3
-collapses (see O1), bandpass frequency lands on page 2, on POT1, POT2 or POT6, since POT3 to
-POT5 are already taken by spray, overlap and output. Its depth would still be pot 4 in LFO
-mode. **The knob holding the parameter and the knob holding its depth stop being the same
-knob**, which is the one place the whole scheme's logic breaks.
+**The knob-mismatch worry is gone.** It only arose if page 3 collapsed and bandpass
+frequency moved to page 2 while its depth stayed on pot 4, so parameter and depth sat on
+different knobs. Page 3 is kept (see O1), so bandpass frequency stays on page 3 POT1 and
+the mismatch never happens. Pot 4 carrying its depth is now just a label question.
 
 **An option not otherwise considered:** the two LFO pages could carry different destination
 sets, with pot 4 as Density depth on the LFO 1 page and bandpass depth on the LFO 2 page.
