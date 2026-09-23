@@ -126,16 +126,16 @@ Page 3 lasts only as long as you hold FS1. Release and you are back on page 2.
 
 ### Full matrix
 
-<img src="docs/Nebulae_v1.29_control_map.svg" width="680" alt="Nebulae v1.29 control map">
+<img src="docs/Nebulae_v1.32_control_map.svg" width="680" alt="Nebulae v1.32 control map">
 
 | Pot | 1 Primary | 2 SHIFT | 3 TERTIARY |
 |---|---|---|---|
 | **POT1** | START, loop start | LFO 1 RATE | BANDPASS freq |
-| **POT2** | SPEED (detent) | BLEND LFO DEPTH | LFO 2 RATE (and shape) |
+| **POT2** | SPEED (detent) | DUB LVL | LFO 2 RATE (and shape) |
 | **POT3** | SIZE, loop length | SPRAY | LFO 2 DEPTH |
 | **POT4** | DENSITY | OVERLAP | SHIFT MIX |
 | **POT5** | PITCH (detent) | OUTPUT | FREQ SHIFT |
-| **POT6** | BLEND | LFO 1 DEPTH (read position) | GRAIN PITCH RAND |
+| **POT6** | BLEND | LFO 1 DEPTH | GRAIN PITCH RAND |
 
 | Switch | 1 Primary / 2 SHIFT | 3 TERTIARY |
 |---|---|---|
@@ -172,7 +172,7 @@ module uses encoders here; the knob curve is remapped so a pot behaves the same 
 | | |
 |---|---|
 | **LFO 1 RATE** | 0.02 to 2 Hz, exponential. Default 0.02 Hz, one cycle every 50 seconds |
-| **BLEND LFO DEPTH** | LFO 1 to Blend, bipolar, squared curve. Default 0 |
+| **DUB LVL** | Input level as written to the buffer. Unity at centre, 0.25x to 4x |
 | **SPRAY** | Grain position randomisation, squared curve |
 | **OVERLAP** | Grain length as a multiple of the grain period |
 | **OUTPUT** | Monitoring level only, never reaches the recorder |
@@ -183,15 +183,10 @@ playhead, so concurrent grains all read identical audio and differ only in envel
 The result is successive stutters rather than a cloud. Turning it up spawns grains from
 random positions across the loop. This is the control that makes it sound granular.
 
-**BLEND LFO DEPTH** routes LFO 1 to Blend as a second destination, sharing its rate and
-shape. **Bipolar**, unlike the read-position destination: it sweeps either side of wherever
-the Blend knob sits rather than anchoring at it. The gains are interpolated per sample
-across each block, so a fast sweep cannot zipper.
-
-Note that a Blend sweep crosses the dry position at centre, since the stock law runs
-vocoder to dry to granular. At real depth you will hear dry come and go.
-
-Input is recorded at **unity**. There is no input level control and no boost path after v1.29.
+**DUB LVL** scales the input as it is written to the buffer, not what you monitor. It
+applies to every recording, not just overdubs. In MIX mode the existing loop arrives via
+the engine and new material via this path, so it is the layer balance. Unity at centre,
+0.25x fully CCW, 4x fully CW.
 
 **OUTPUT** never reaches the recorder, so boosting it does not make overdubs compound on
 themselves.
@@ -281,8 +276,11 @@ bypass on the way in. That costs a few hundred milliseconds, imperceptible by ha
 ### The reset
 
 Holding FS1 for one second with SW1 down returns all nine page-2 and page-3 parameters to
-their power-on defaults: LFO 1 rate and both depths, spray, overlap, output, LFO 2
+their power-on defaults: LFO 1 rate and depth, dub level, spray, overlap, output, LFO 2
 rate and depth, bandpass, shift mix, freq shift and pitch rand.
+
+**Page 1 is not touched, so Pitch and Speed are not reset.** Their centre detents are the
+reset for those two: the detent lands on exactly 1.0000 in both cases.
 
 **Page 1 is deliberately untouched.** Resetting it would leave all six knobs uncaught and
 the pedal would ignore every control until each was swept. After a reset the affected pots
@@ -354,6 +352,26 @@ knob sets     lfo -1     lfo +1     span
   2257 Hz       564       9026      4.0 octaves
   6000 Hz      1500      12000      3.0 octaves
 ```
+
+### Grain envelope, expodec
+
+The decay is **two exponentials summed**, a fast component plus a slow one. A single
+exponential cannot be both snappy and long-tailed, because how fast it falls and how far it
+falls are the same number, so lengthening the tail always softens the initial drop. Two
+stages behave like a plucked string instead: the transient bites, then a low tail hangs on.
+
+```
+                to -6dB   to -12dB   to -20dB    mean
+single exp        15.8      25.2       37.7     0.1460
+two-stage         11.9      22.3       50.6     0.1463
+```
+
+Percentages of grain length; the attack is a fixed 6.25% in both. Snappier at the top,
+longer at the bottom, and the mean is unchanged so it needs no level compensation. Both
+endpoints are exactly zero and the decay never rises, so grain boundaries stay silent.
+
+Everything scales with grain length, so the change reads as proportional opening rather
+than a fixed release time and is most obvious at long grains.
 
 ### Grain pitch randomisation
 
@@ -445,12 +463,13 @@ rocking in place; this drifts forward and resets.
 
 | | |
 |---|---|
-| **SHIFT + POT1** | LFO 1 RATE, shared by both destinations |
-| **SHIFT + POT6** | LFO 1 DEPTH to read position, unipolar (0 = off, bit-identical to no LFO) |
-| **SHIFT + POT2** | LFO 1 DEPTH to Blend, bipolar (0 = off) |
+| **SHIFT + POT1** | LFO 1 RATE |
+| **SHIFT + POT6** | LFO 1 DEPTH (0 = off, output is bit-identical to no LFO) |
 
-Two destinations, independent depth, shared rate and shape. Read position is unipolar so
-the sweep anchors at Start; Blend is bipolar so it sweeps either side of the knob.
+Blend was briefly a second destination for LFO 1, on SHIFT+POT2 in v1.29 to v1.31. It came
+out with v1.32: modulating Blend without also modulating Size never sounded right, and the
+knob was better spent on DUB LVL. Blend returns as a destination in build 2's LFO layer,
+where both LFOs reach every destination with independent depth.
 
 ---
 
@@ -517,9 +536,9 @@ Recording **punches in at the current playhead, runs exactly one loop pass, and 
 itself.** You do not tap FS2 again. Loop length is locked, so an overdub cannot shorten
 the loop.
 
-The record source is engine output plus your input, independent of BLEND, and recorded at
-unity. Page-3 effects are not captured, so overdubbing with the shifter up will not bake it
-in or compound it across passes.
+The record source is engine output plus your input, independent of BLEND. Use **DUB LVL**
+(SHIFT+POT2) to balance the new layer, unity at centre. Page-3 effects are not captured, so
+overdubbing with the shifter up will not bake it in or compound it across passes.
 
 ### Reach page 3
 
@@ -550,7 +569,7 @@ reset pages 2 and 3 to defaults. LED2 blinks either way.
 
 ## Versions
 
-**Current: `nebulae_v1.29-BUILD1.bin`**
+**Current: `nebulae_v1.32-BUILD1.bin`**
 
 Two hardware variants build from one source tree. **BUILD1** is the toggle-SW1 pedal.
 **BUILD2** adds the illuminated page-3 button and bi-colour LED2, built with
@@ -558,8 +577,11 @@ Two hardware variants build from one source tree. **BUILD1** is the toggle-SW1 p
 
 | Version | Change |
 |---|---|
-| **1.29** | **Current.** Record tap moved ahead of the page-3 effects, so they are non-destructive and no longer compound across overdubs. SHIFT+POT2 becomes BLEND LFO DEPTH; DUB LVL removed and input records at unity |
-| 1.28 | Expodec decay floor 0.001 to 0.003, so the tail runs about a sixth longer at every level. Attack unchanged |
+| **1.32** | **Current.** Built on v1.27. Two-stage grain decay: a fast component plus a slow one, so the transient bites harder than before while the tail hangs on longer. Record tap moved ahead of the page-3 effects, so they are non-destructive. DUB LVL kept on SHIFT+POT2 |
+| 1.31 | Superseded. Same decay change but built on v1.27 while labelled as v1.29, so it lacked the record-tap move. Replaced by 1.32, which is the same idea on a verified base |
+| 1.30 | Superseded. LFO 2 rate narrowed to 0.05 to 1.5 Hz, but built on a tree mistaken for v1.29. The range is still wanted; see Build 2 plans O3 |
+| 1.29 | Record tap moved ahead of the page-3 effects. SHIFT+POT2 became BLEND LFO DEPTH and DUB LVL was removed, both reverted in 1.32 |
+| 1.28 | Expodec decay floor 0.001 to 0.003, lengthening the tail by shallowing the bend. Superseded by 1.32's two-stage decay, which lengthens the tail without softening the attack |
 | 1.27 | LED2 blinks to confirm the FS1 parameter reset on both builds |
 | 1.26 | Page-3 LFO latch moved to SW2, which keeps its normal SRC job throughout |
 | 1.25 | LFO 2 routable to the bandpass by flipping a toggle while page 3 is held, LED2 confirms |
@@ -632,7 +654,7 @@ behaviour.
 | **120 s buffer** | vs 5 min. Volatile, with no file, USB, SD or sample loading anywhere |
 | **Secondaries mostly dropped** | Most `_alt` params fixed at 0, which *is* stock-at-defaults. SPRAY and grain pitch rand are restored |
 | **Speed/Pitch remap** | Centre detent lands on unity. Endpoints preserved exactly. The module uses encoders, we use pots |
-| **SPRAY, OUTPUT** | SPRAY is the module's Start secondary, restored. OUTPUT is an addition, since the Terrarium is unity gain throughout |
+| **SPRAY, DUB LVL, OUTPUT** | SPRAY is the module's Start secondary, restored. DUB LVL and OUTPUT are additions, since the Terrarium is unity gain throughout |
 | **Effects are non-destructive** | The record tap sits ahead of them, so the buffer never contains freq shift or bandpass and overdubs cannot compound the effect |
 | **Overdub ignores BLEND** | Stock scales the recorded dry by the blend dry factor, which is zero at both extremes. Correct for the module, wrong for a looper |
 | **Catch mode** | One pot serving two parameters requires it |
@@ -988,10 +1010,16 @@ covers less frequency ratio and the whole sweep gains resolution, including the 
 that currently feels narrow.
 
 ```
-floor 0.02 Hz   50 s cycle   6.6 octaves   today
-floor 0.05 Hz   20 s cycle   5.3 octaves   if more slow drift is wanted
-floor 0.10 Hz   10 s cycle   4.3 octaves   proposed
+0.02 to 2 Hz     50.0 s to 0.50 s   6.6 octaves   today
+0.05 to 1.5 Hz   20.0 s to 0.67 s   4.9 octaves   built as v1.30, wrong base, not shipped
+0.06 to 1.2 Hz   16.7 s to 0.83 s   4.3 octaves   finer still
+0.10 to 2 Hz     10.0 s to 0.50 s   4.3 octaves   loses the slow end
 ```
+
+**0.05 to 1.5 Hz is the one to rebuild.** It keeps a genuinely slow floor while cutting the
+share of travel slower than a 10 s cycle from 35% to 15%, and every tenth of the knob then
+covers 0.49 octaves instead of 0.66, so the whole sweep is 26% finer. Narrowing both ends
+keeps the law a single exponential, so equal rotation still covers equal frequency ratio.
 
 **Raising the ceiling does the opposite.** It widens the span and makes every degree
 coarser. Only the floor move gets what was asked for.
@@ -1097,8 +1125,8 @@ functions to toggles unless there is no alternative.
 ## Known limitations
 
 - **Noise floor.** The Terrarium's analog path is unity gain, so a guitar hits the ADC
-  20 to 30 dB below full scale. OUTPUT is applied *after* the converter and cannot improve
-  SNR. The only real fix is analog gain ahead of the pedal. See the input
+  20 to 30 dB below full scale. DUB LVL and OUTPUT are applied *after* the converter and
+  cannot improve SNR. The only real fix is analog gain ahead of the pedal. See the input
   boost under Build 2 plans
 - **No stereo.** Seed pins 17/19 are unused; a second output buffer would give dual mono.
   True stereo needs a second vocoder and grain cloud. CPU is fine, memory is the limit
